@@ -1,0 +1,568 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#2d6b6f">
+<meta name="color-scheme" content="light">
+<title>빵 만들기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Jua&family=Gaegu:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* 레이아웃: 주방 타일 벽 위에서 메인 → 레시피 노트 → 조리대 플레이 순으로 한 화면씩 전환 */
+  :root{
+    --wall:#2d6b6f;
+    --wood:#c88a50;
+    --wood-2:#b87a42;
+    --wood-edge:#8f5a2b;
+    --paper:#fffef8;
+    --rule:#b9d6ea;
+    --margin:#ee9a9a;
+    --ink:#27345a;
+    --brown:#4a3326;
+    --butter:#f6bf3b;
+    --ok:#1f7f47;
+    --bad:#c63b26;
+    --font-display:'Jua','Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
+    --font-hand:'Gaegu','Jua','Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',cursive;
+    color-scheme:light;
+  }
+  *{box-sizing:border-box}
+  [hidden]{display:none!important}
+  html,body{height:100%}
+  body{
+    margin:0;
+    background-color:var(--wall);
+    background-image:
+      linear-gradient(rgba(255,255,255,.07) 2px,transparent 2px),
+      linear-gradient(90deg,rgba(255,255,255,.07) 2px,transparent 2px);
+    background-size:56px 56px;
+    color:var(--brown);
+    font-family:var(--font-display);
+    -webkit-tap-highlight-color:transparent;
+    overflow-x:hidden;
+  }
+  button{font:inherit;touch-action:manipulation}
+  :focus-visible{outline:4px solid #fff;outline-offset:3px}
+  .result-card :focus-visible{outline-color:#1b4fd1}
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+  .screen{
+    min-height:100vh;min-height:100dvh;
+    display:flex;flex-direction:column;align-items:center;gap:20px;
+    padding-block:max(18px,env(safe-area-inset-top)) max(24px,env(safe-area-inset-bottom));
+    padding-left:max(16px,env(safe-area-inset-left));
+    padding-right:max(16px,env(safe-area-inset-right));
+  }
+
+  /* 버튼 */
+  .btn{
+    font-size:clamp(20px,4.8vw,26px);
+    padding:.65em 1.6em;
+    border:3px solid var(--brown);border-radius:999px;
+    background:var(--butter);color:var(--brown);
+    box-shadow:0 6px 0 var(--brown);
+    cursor:pointer;
+    transition:transform .08s,box-shadow .08s;
+  }
+  .btn.alt{background:#fff7e0}
+  .btn.small{font-size:18px;padding:.45em 1.1em;box-shadow:0 4px 0 var(--brown)}
+  .btn:hover{transform:translateY(-2px)}
+  .btn:active{transform:translateY(5px);box-shadow:0 1px 0 var(--brown)}
+  .btn-row{display:flex;flex-wrap:wrap;gap:18px;justify-content:center}
+
+  /* 메인 화면 */
+  .menu{position:relative;justify-content:flex-start}
+  .awning{
+    position:absolute;top:0;left:0;right:0;height:64px;
+    background:repeating-linear-gradient(90deg,#e8553d 0 48px,#fffaf0 48px 96px);
+    filter:drop-shadow(0 4px 0 rgba(0,0,0,.22));
+  }
+  .awning::after{
+    content:"";position:absolute;left:0;right:0;top:100%;height:24px;
+    background:
+      radial-gradient(circle at 24px 0,#e8553d 23px,transparent 24px) 0 0/96px 24px repeat-x,
+      radial-gradient(circle at 72px 0,#fffaf0 23px,transparent 24px) 0 0/96px 24px repeat-x;
+  }
+  .menu-body{
+    margin-top:104px;width:min(560px,100%);
+    display:flex;flex-direction:column;align-items:center;gap:26px;text-align:center;
+  }
+  .menu h1{
+    margin:0;font-weight:400;
+    font-size:clamp(60px,17vw,112px);line-height:1;
+    color:#fff3c4;
+    -webkit-text-stroke:7px var(--brown);paint-order:stroke fill;
+    text-shadow:0 7px 0 var(--brown);
+  }
+  .lead{
+    margin:0;font-family:var(--font-hand);font-weight:700;
+    font-size:clamp(22px,5vw,28px);color:#e8f6f3;text-wrap:balance;
+  }
+  .tray{
+    display:flex;justify-content:center;align-items:flex-end;gap:8px;
+    width:min(430px,100%);padding:0 14px 14px;margin-top:40px;
+    background:repeating-linear-gradient(0deg,rgba(74,51,38,.06) 0 2px,transparent 2px 24px),linear-gradient(var(--wood),var(--wood-2));
+    border:3px solid var(--brown);border-radius:20px;box-shadow:0 7px 0 var(--wood-edge);
+  }
+  .hero-bread{width:min(38vw,170px);height:auto;margin-top:-56px}
+
+  .copyright{margin:auto 0 0;padding-top:28px;text-align:center;font-family:var(--font-hand);font-weight:700;font-size:clamp(18px,4vw,21px);color:#e8f6f3}
+
+  /* 레시피 노트 */
+  #recipe{justify-content:center}
+  .notebook{
+    position:relative;width:min(1000px,100%);
+    background:#2c4a9a;border:3px solid var(--brown);border-radius:22px;
+    padding:16px;box-shadow:0 8px 0 rgba(0,0,0,.28);
+  }
+  .pages{display:grid;grid-template-columns:1fr 1fr;grid-auto-rows:1fr}
+  .page{
+    position:relative;min-width:0;
+    padding:20px 20px 26px 56px;
+    background-color:var(--paper);
+    background-image:repeating-linear-gradient(to bottom,transparent 0 31px,var(--rule) 31px 33px);
+  }
+  .page::before{content:"";position:absolute;top:0;bottom:0;left:40px;width:2px;background:var(--margin);opacity:.8}
+  .page.left{border-radius:10px 0 0 10px;
+    background-image:linear-gradient(to left,rgba(60,40,20,.16),transparent 38px),repeating-linear-gradient(to bottom,transparent 0 31px,var(--rule) 31px 33px)}
+  .page.right{border-radius:0 10px 10px 0;
+    background-image:linear-gradient(to right,rgba(60,40,20,.16),transparent 38px),repeating-linear-gradient(to bottom,transparent 0 31px,var(--rule) 31px 33px)}
+  .page-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+  .page-head h2{margin:0;font-family:var(--font-hand);font-weight:700;font-size:clamp(34px,7vw,44px);color:var(--ink);line-height:1.1}
+  .page-head mark{background:linear-gradient(transparent 58%,#ffe58a 58%);color:inherit;padding:0 6px}
+  .page-bread{width:64px;height:64px;flex:none}
+  .steps{list-style:none;margin:16px 0 0;padding:0;display:grid;gap:10px;position:relative}
+  .steps::before{content:"";position:absolute;left:19px;top:24px;bottom:24px;border-left:3px dashed var(--ink);opacity:.3}
+  .step{display:grid;grid-template-columns:40px 58px 1fr;align-items:center;gap:12px;min-width:0}
+  .num{
+    position:relative;z-index:1;width:40px;height:40px;border-radius:50%;
+    display:grid;place-items:center;
+    background:var(--butter);border:2.5px solid var(--ink);color:var(--ink);font-size:22px;
+  }
+  .pic{width:58px;height:58px}
+  .txt{display:flex;flex-direction:column;min-width:0;font-family:var(--font-hand);color:var(--ink);line-height:1.1}
+  .txt b{font-size:clamp(24px,5vw,30px);font-weight:700}
+  .txt small{font-size:clamp(18px,4vw,21px);opacity:.78}
+  .rings{
+    position:absolute;left:50%;top:18px;bottom:18px;width:0;
+    display:flex;flex-direction:column;justify-content:space-around;align-items:center;pointer-events:none;
+  }
+  .rings i{
+    flex:none;width:52px;height:14px;border-radius:8px;
+    background:linear-gradient(#f4f6f9,#98a1ab);border:2px solid #4b5563;box-shadow:0 2px 0 rgba(0,0,0,.28);
+  }
+
+  /* 플레이 화면 */
+  #game{justify-content:flex-start}
+  .game-top{width:min(760px,100%);display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .hint{margin:0;flex:1;min-width:180px;text-align:center;font-family:var(--font-hand);font-weight:700;font-size:clamp(21px,4.6vw,28px);color:#eaf7f4}
+  .board{
+    width:min(760px,100%);padding:14px;
+    background:#f3e1c1;border:3px solid var(--brown);border-radius:22px;box-shadow:0 6px 0 rgba(0,0,0,.25);
+  }
+  .slots{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+  .slot{
+    aspect-ratio:1;max-height:96px;width:100%;justify-self:center;border-radius:50%;
+    display:grid;place-items:center;
+    border:3px dashed #a7824f;background:rgba(255,255,255,.45);
+    font-family:var(--font-hand);font-weight:700;font-size:28px;color:#a7824f;
+  }
+  .slot.filled{border-style:solid;border-color:var(--brown);background:#fff}
+  .slot.in{animation:slot-in .3s cubic-bezier(.2,1.5,.4,1)}
+  .slot svg{width:78%;height:78%}
+  @keyframes slot-in{from{transform:scale(.4);opacity:0}}
+  .table{
+    width:min(760px,100%);padding:18px;
+    background:repeating-linear-gradient(0deg,rgba(74,51,38,.06) 0 2px,transparent 2px 26px),linear-gradient(var(--wood),var(--wood-2));
+    border:3px solid var(--brown);border-radius:22px;box-shadow:0 8px 0 var(--wood-edge);
+  }
+  .table.locked{pointer-events:none}
+  .ing-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+  .ing{
+    display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:4px;
+    padding:10px 4px 8px;
+    background:#fff8e8;border:3px solid var(--brown);border-radius:18px;color:var(--brown);
+    box-shadow:0 5px 0 var(--wood-edge);cursor:pointer;user-select:none;
+    transition:transform .08s,box-shadow .08s;
+  }
+  .ing .ico{width:100%;max-width:74px;height:auto;aspect-ratio:1}
+  .ing span{font-size:clamp(14px,3.7vw,19px);line-height:1.15;text-align:center;word-break:keep-all}
+  .ing:hover{transform:translateY(-2px)}
+  .ing:active{transform:translateY(4px);box-shadow:0 1px 0 var(--wood-edge)}
+  .ing.pop{animation:pop .3s}
+  @keyframes pop{40%{transform:scale(1.12) rotate(-3deg)}}
+
+  /* 결과 */
+  .overlay{position:fixed;inset:0;z-index:20;display:grid;place-items:center;padding:16px;background:rgba(20,36,38,.72)}
+  .result-card{
+    position:relative;width:min(440px,100%);text-align:center;
+    padding:24px 22px 26px;background:var(--paper);
+    border:4px solid var(--brown);border-radius:28px;box-shadow:0 10px 0 rgba(0,0,0,.3);
+    animation:card-in .45s cubic-bezier(.2,1.4,.4,1) both;
+  }
+  .result-card.bad{animation:shake .55s both}
+  .result-art .big{width:min(210px,52vw);height:auto}
+  .result-card.ok .big{animation:bob 1.4s ease-in-out infinite}
+  .result-card h2{margin:6px 0 0;font-weight:400;font-size:clamp(40px,11vw,56px);line-height:1.1}
+  .result-card.ok h2{color:var(--ok)}
+  .result-card.bad h2{color:var(--bad)}
+  .result-card p{margin:8px 0 22px;font-family:var(--font-hand);font-weight:700;font-size:24px;color:var(--ink)}
+  .confetti{position:absolute;left:50%;top:110px;width:0;height:0;pointer-events:none}
+  .confetti i{
+    position:absolute;width:10px;height:14px;border-radius:2px;background:var(--c);
+    animation:fly 1.4s cubic-bezier(.2,.7,.3,1) forwards;
+  }
+  @keyframes card-in{from{transform:scale(.8) translateY(20px);opacity:0}}
+  @keyframes shake{
+    0%{transform:scale(.9);opacity:0}
+    40%{transform:scale(1.02) rotate(-1.5deg);opacity:1}
+    60%{transform:rotate(1.5deg)}
+    80%{transform:rotate(-.8deg)}
+    100%{transform:none}
+  }
+  @keyframes bob{50%{transform:translateY(-8px)}}
+  @keyframes fly{
+    0%{opacity:1;transform:translate(0,0) rotate(0)}
+    70%{opacity:1}
+    100%{opacity:0;transform:translate(var(--x),calc(var(--y) + 160px)) rotate(var(--r))}
+  }
+
+  @media (max-width:680px){
+    .pages{grid-template-columns:1fr}
+    .page.left{border-radius:10px 10px 0 0;
+      background-image:linear-gradient(to top,rgba(60,40,20,.16),transparent 30px),repeating-linear-gradient(to bottom,transparent 0 31px,var(--rule) 31px 33px)}
+    .page.right{border-radius:0 0 10px 10px;
+      background-image:linear-gradient(to bottom,rgba(60,40,20,.16),transparent 30px),repeating-linear-gradient(to bottom,transparent 0 31px,var(--rule) 31px 33px)}
+    .rings{left:20px;right:20px;top:50%;bottom:auto;width:auto;height:0;flex-direction:row}
+    .rings i{width:14px;height:52px}
+  }
+  @media (max-width:420px){
+    .page{padding:16px 14px 20px 50px}
+    .page::before{left:34px}
+    .step{grid-template-columns:34px 48px 1fr;gap:8px}
+    .num{width:34px;height:34px;font-size:19px}
+    .pic{width:48px;height:48px}
+    .steps::before{left:16px}
+    .page-bread{width:52px;height:52px}
+    .ing-grid{gap:8px}
+    .table{padding:12px}
+    .slots{gap:6px}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+  }
+</style>
+</head>
+<body>
+<noscript><p style="padding:24px;color:#fff;font-family:sans-serif">이 게임은 자바스크립트가 켜져 있어야 실행돼요.</p></noscript>
+<main>
+
+  <section id="menu" class="screen menu" aria-labelledby="menu-title">
+    <div class="awning" aria-hidden="true"></div>
+    <div class="menu-body">
+      <h1 id="menu-title">빵 만들기</h1>
+      <p class="lead">레시피를 보고 재료를 순서대로 골라 빵을 구워 보세요.</p>
+      <div class="tray" id="menu-tray" aria-hidden="true"></div>
+      <div class="btn-row">
+        <button type="button" class="btn" id="btn-play">플레이</button>
+        <button type="button" class="btn alt" id="btn-recipe">레시피</button>
+      </div>
+    </div>
+    <footer class="copyright">© 2026 이지홍. All rights reserved.</footer>
+  </section>
+
+  <section id="recipe" class="screen" hidden aria-label="레시피 노트">
+    <div class="notebook">
+      <div class="pages" id="pages"></div>
+      <div class="rings" id="rings" aria-hidden="true"></div>
+    </div>
+    <div class="btn-row">
+      <button type="button" class="btn alt" id="recipe-home">메인 화면</button>
+      <button type="button" class="btn" id="recipe-play">플레이</button>
+    </div>
+  </section>
+
+  <section id="game" class="screen" hidden aria-label="빵 만들기 플레이">
+    <div class="game-top">
+      <button type="button" class="btn alt small" id="game-home">메인 화면</button>
+      <p class="hint">레시피 순서대로 재료를 눌러 보세요</p>
+    </div>
+    <div class="board">
+      <ol class="slots" id="slots" aria-label="고른 재료"></ol>
+    </div>
+    <div class="table" id="table">
+      <div class="ing-grid" id="ing-grid"></div>
+    </div>
+    <p class="sr-only" id="live" aria-live="polite"></p>
+
+    <div class="overlay" id="result" hidden role="dialog" aria-modal="true" aria-labelledby="result-title">
+      <div class="result-card" id="result-card">
+        <div class="confetti" id="confetti" aria-hidden="true"></div>
+        <div class="result-art" id="result-art"></div>
+        <h2 id="result-title"></h2>
+        <p id="result-sub"></p>
+        <div class="btn-row">
+          <button type="button" class="btn" id="btn-restart">다시 시작</button>
+          <button type="button" class="btn alt" id="btn-home">메인 화면</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+(function () {
+  'use strict';
+
+  var S = 'stroke="#4a3326" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"';
+
+  /* 그림: 재료는 100x100, 빵은 160x160 좌표 */
+  var ART = {
+    flour: `
+      <path d="M26 24h48l6 8v54a6 6 0 0 1-6 6H26a6 6 0 0 1-6-6V32z" fill="#f6efe2" ${S}/>
+      <path d="M20 32h60" fill="none" ${S}/>
+      <path d="M27 27h46" fill="none" stroke="#4a3326" stroke-width="2" stroke-dasharray="3 4"/>
+      <rect x="31" y="43" width="38" height="30" rx="5" fill="#fff" stroke="#4a3326" stroke-width="2.5"/>
+      <path d="M50 68V51M50 57l-6-5M50 57l6-5M50 63l-6-5M50 63l6-5" fill="none" stroke="#c9902f" stroke-width="3" stroke-linecap="round"/>`,
+    yeast: `
+      <rect x="28" y="14" width="44" height="16" rx="4" fill="#d9573b" ${S}/>
+      <path d="M32 30h36v6q8 4 8 12v34a8 8 0 0 1-8 8H32a8 8 0 0 1-8-8V48q0-8 8-12z" fill="#e9f3f2"/>
+      <path d="M24 66h52v16a8 8 0 0 1-8 8H32a8 8 0 0 1-8-8z" fill="#dcb872"/>
+      <g fill="#b98a3e"><circle cx="34" cy="74" r="2"/><circle cx="46" cy="80" r="2"/><circle cx="58" cy="73" r="2"/><circle cx="67" cy="82" r="2"/><circle cx="40" cy="85" r="2"/></g>
+      <path d="M32 30h36v6q8 4 8 12v34a8 8 0 0 1-8 8H32a8 8 0 0 1-8-8V48q0-8 8-12z" fill="none" ${S}/>
+      <rect x="34" y="42" width="32" height="18" rx="3" fill="#fff" stroke="#4a3326" stroke-width="2.5"/>
+      <circle cx="45" cy="51" r="3.5" fill="#d9573b"/><circle cx="55" cy="49" r="2.5" fill="#d9573b"/>`,
+    milk: `
+      <path d="M28 40L38 20h24l10 20z" fill="#d7e8f7" ${S}/>
+      <rect x="28" y="40" width="44" height="50" fill="#fff"/>
+      <rect x="28" y="64" width="44" height="14" fill="#6fb1e0"/>
+      <path d="M50 45c-5 6-6 8-6 11a6 6 0 0 0 12 0c0-3-1-5-6-11z" fill="#6fb1e0"/>
+      <rect x="28" y="40" width="44" height="50" fill="none" ${S}/>`,
+    egg: `
+      <path d="M50 12C72 12 84 42 84 62C84 80 68 90 50 90C32 90 16 80 16 62C16 42 28 12 50 12z" fill="#fff1d6" ${S}/>
+      <path d="M30 60q0-16 8-28" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round"/>
+      <circle cx="64" cy="70" r="2.5" fill="#e6c9a0"/><circle cx="56" cy="78" r="2" fill="#e6c9a0"/>`,
+    butter: `
+      <path d="M14 48l16-14h56L70 48z" fill="#fff0a8" ${S}/>
+      <path d="M14 48h56v34H14z" fill="#ffd85a" ${S}/>
+      <path d="M70 48l16-14v34L70 82z" fill="#f0b932" ${S}/>
+      <path d="M24 62q8-6 16 0" fill="none" stroke="#e0a21f" stroke-width="3" stroke-linecap="round"/>
+      <path d="M44 41q8-4 18 0" fill="none" stroke="#e8d37a" stroke-width="2.5" stroke-linecap="round"/>`,
+    sugar: `
+      <rect x="26" y="40" width="22" height="20" rx="3" fill="#fff" ${S}/>
+      <rect x="50" y="42" width="22" height="18" rx="3" fill="#fff" ${S}/>
+      <rect x="38" y="22" width="22" height="20" rx="3" fill="#fff" ${S}/>
+      <path d="M14 58h72q0 30-36 30T14 58z" fill="#7fb7d6" ${S}/>
+      <path d="M28 68q4 10 14 12" fill="none" stroke="#bfe0f0" stroke-width="3" stroke-linecap="round"/>
+      <path d="M78 22l3 7 7 3-7 3-3 7-3-7-7-3 7-3z" fill="#ffd85a" stroke="#4a3326" stroke-width="2" stroke-linejoin="round"/>`,
+    peanut: `
+      <rect x="22" y="16" width="56" height="18" rx="5" fill="#d9573b" ${S}/>
+      <rect x="24" y="34" width="52" height="56" rx="10" fill="#e3b573"/>
+      <rect x="24" y="34" width="52" height="56" rx="10" fill="none" ${S}/>
+      <rect x="30" y="46" width="40" height="34" rx="5" fill="#fff" stroke="#4a3326" stroke-width="2.5"/>
+      <g transform="rotate(-25 50 63)" fill="#d9a05a" stroke="#4a3326" stroke-width="2.5"><ellipse cx="42" cy="63" rx="9" ry="7"/><ellipse cx="58" cy="63" rx="9" ry="7"/></g>`,
+    custard: `
+      <path d="M24 54q0-12 26-12t26 12z" fill="#ffd95c" ${S}/>
+      <path d="M32 46q0-12 18-12t18 12z" fill="#ffe27a" ${S}/>
+      <path d="M40 38q0-12 10-12t10 12z" fill="#ffeb99" ${S}/>
+      <path d="M50 27q-2-9 5-11-1 7-5 11z" fill="#ffeb99" ${S}/>
+      <path d="M14 54h72q0 34-36 34T14 54z" fill="#f7c6d0" ${S}/>
+      <path d="M26 66q4 10 14 12" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>`,
+    soboro: `
+      <ellipse cx="80" cy="134" rx="58" ry="8" fill="rgba(74,51,38,.18)"/>
+      <path d="M20 104q0-56 60-56t60 56q0 22-60 22t-60-22z" fill="#f2c47e"/>
+      <g fill="#e2a557" stroke="#a8692b" stroke-width="2.5">
+        <circle cx="46" cy="88" r="11"/><circle cx="74" cy="84" r="12"/><circle cx="102" cy="88" r="11"/>
+        <circle cx="128" cy="100" r="9"/><circle cx="34" cy="104" r="9"/><circle cx="60" cy="64" r="10"/>
+        <circle cx="90" cy="62" r="11"/><circle cx="116" cy="74" r="10"/><circle cx="72" cy="106" r="10"/>
+        <circle cx="100" cy="108" r="9"/><circle cx="44" cy="70" r="8"/>
+      </g>
+      <g fill="#b97a35"><circle cx="52" cy="84" r="2"/><circle cx="80" cy="90" r="2"/><circle cx="96" cy="84" r="2"/><circle cx="66" cy="62" r="2"/><circle cx="108" cy="104" r="2"/><circle cx="122" cy="72" r="2"/></g>
+      <path d="M20 104q0-56 60-56t60 56q0 22-60 22t-60-22z" fill="none" ${S}/>`,
+    cream: `
+      <ellipse cx="80" cy="136" rx="58" ry="8" fill="rgba(74,51,38,.18)"/>
+      <path d="M22 108h116q0 22-58 22t-58-22z" fill="#dfa05a" ${S}/>
+      <path d="M18 92H138v14q-10 12-20 0t-20 0-20 0-20 0-20 0-20 0z" fill="#ffe27a" ${S}/>
+      <path d="M24 96q0-46 56-46t56 46z" fill="#ecb96f" ${S}/>
+      <path d="M44 76q4-14 20-18" fill="none" stroke="#fff3d0" stroke-width="5" stroke-linecap="round"/>
+      <g fill="#fff"><circle cx="86" cy="66" r="2.5"/><circle cx="104" cy="76" r="2.5"/><circle cx="96" cy="88" r="2.5"/><circle cx="72" cy="80" r="2.5"/><circle cx="118" cy="88" r="2.5"/></g>`,
+    fail: `
+      <ellipse cx="80" cy="140" rx="56" ry="8" fill="rgba(74,51,38,.18)"/>
+      <path d="M26 110q-8-34 22-48 28-14 58 2 26 14 14 42-10 22-48 22t-46-18z" fill="#3b2b24" ${S}/>
+      <path d="M52 78q10-10 22-8M96 96q12 4 22-4" fill="none" stroke="#6a4c3c" stroke-width="5" stroke-linecap="round"/>
+      <g fill="none" stroke="#f3e2d0" stroke-width="4" stroke-linecap="round"><path d="M58 96l10 10M68 96L58 106M92 96l10 10M102 96L92 106"/><path d="M70 118q10-6 20 0"/></g>
+      <g fill="none" stroke="#a89e97" stroke-width="5" stroke-linecap="round"><path d="M64 50q-10-10 0-20t0-20"/><path d="M96 46q-10-10 0-20t0-18"/></g>`
+  };
+  var BIG = { soboro: 1, cream: 1, fail: 1 };
+
+  function art(id, cls) {
+    var n = BIG[id] ? 160 : 100;
+    return '<svg class="' + (cls || '') + '" viewBox="0 0 ' + n + ' ' + n + '" aria-hidden="true" focusable="false">' + ART[id] + '</svg>';
+  }
+
+  var INGREDIENTS = [
+    { id: 'flour',   name: '밀가루' },
+    { id: 'yeast',   name: '이스트' },
+    { id: 'milk',    name: '우유' },
+    { id: 'egg',     name: '달걀' },
+    { id: 'butter',  name: '버터' },
+    { id: 'sugar',   name: '설탕' },
+    { id: 'peanut',  name: '땅콩버터' },
+    { id: 'custard', name: '커스터드 크림' }
+  ];
+  var NAME = {};
+  INGREDIENTS.forEach(function (i) { NAME[i.id] = i.name; });
+
+  var RECIPES = [
+    { id: 'soboro', name: '소보로빵', art: 'soboro', steps: [
+      ['flour', '반죽의 기본'], ['yeast', '빵을 부풀려요'], ['butter', '부드럽게'],
+      ['sugar', '달콤하게'], ['peanut', '고소한 소보로 토핑'] ] },
+    { id: 'cream', name: '슈크림빵', art: 'cream', steps: [
+      ['flour', '반죽의 기본'], ['milk', '촉촉하게'], ['egg', '윤기를 더해요'],
+      ['butter', '고소하게'], ['custard', '속을 채워요'] ] }
+  ];
+  var MAX = Math.max.apply(null, RECIPES.map(function (r) { return r.steps.length; }));
+
+  function $(s) { return document.querySelector(s); }
+  var screens = { menu: $('#menu'), recipe: $('#recipe'), game: $('#game') };
+  var seq = [];
+  var locked = false;
+  var timer = null;
+
+  function show(name) {
+    clearTimeout(timer);
+    Object.keys(screens).forEach(function (k) { screens[k].hidden = (k !== name); });
+    $('#result').hidden = true;
+    window.scrollTo(0, 0);
+    if (name === 'game') startGame();
+  }
+
+  /* 메인 */
+  $('#menu-tray').innerHTML = art('soboro', 'hero-bread') + art('cream', 'hero-bread');
+
+  /* 레시피 */
+  $('#pages').innerHTML = RECIPES.map(function (r, i) {
+    var steps = r.steps.map(function (s, n) {
+      return '<li class="step"><span class="num">' + (n + 1) + '</span>' + art(s[0], 'pic') +
+        '<span class="txt"><b>' + NAME[s[0]] + '</b><small>' + s[1] + '</small></span></li>';
+    }).join('');
+    return '<article class="page ' + (i === 0 ? 'left' : 'right') + '">' +
+      '<header class="page-head"><h2><mark>' + r.name + '</mark></h2>' + art(r.art, 'page-bread') + '</header>' +
+      '<ol class="steps">' + steps + '</ol></article>';
+  }).join('');
+  $('#rings').innerHTML = new Array(11).join('<i></i>');
+
+  /* 플레이 */
+  function shuffle(a) {
+    a = a.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+  }
+
+  function renderSlots() {
+    var h = '';
+    for (var i = 0; i < MAX; i++) {
+      if (i < seq.length) {
+        h += '<li class="slot filled' + (i === seq.length - 1 ? ' in' : '') + '" title="' + NAME[seq[i]] + '">' + art(seq[i]) + '</li>';
+      } else {
+        h += '<li class="slot"><span>' + (i + 1) + '</span></li>';
+      }
+    }
+    $('#slots').innerHTML = h;
+  }
+
+  function startGame() {
+    clearTimeout(timer);
+    seq = [];
+    locked = false;
+    $('#result').hidden = true;
+    $('#table').classList.remove('locked');
+    $('#ing-grid').innerHTML = shuffle(INGREDIENTS).map(function (i) {
+      return '<button type="button" class="ing" data-id="' + i.id + '">' + art(i.id, 'ico') + '<span>' + i.name + '</span></button>';
+    }).join('');
+    $('#live').textContent = '';
+    renderSlots();
+    var first = $('#ing-grid .ing');
+    if (first) first.focus({ preventScroll: true });
+  }
+
+  function matchesFull(r) {
+    return r.steps.length === seq.length && r.steps.every(function (s, i) { return s[0] === seq[i]; });
+  }
+  function matchesPrefix(r) {
+    return seq.every(function (id, i) { return r.steps[i] && r.steps[i][0] === id; });
+  }
+
+  function pick(btn) {
+    if (locked) return;
+    var id = btn.getAttribute('data-id');
+    seq.push(id);
+    renderSlots();
+    $('#live').textContent = seq.length + '번째 재료: ' + NAME[id];
+    btn.classList.remove('pop');
+    void btn.offsetWidth;
+    btn.classList.add('pop');
+
+    var done = RECIPES.filter(matchesFull)[0];
+    if (done) return finish(done);
+    if (!RECIPES.some(matchesPrefix)) return finish(null);
+  }
+
+  function finish(recipe) {
+    locked = true;
+    $('#table').classList.add('locked');
+    timer = setTimeout(function () { showResult(recipe); }, 650);
+  }
+
+  function confetti() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var box = $('#confetti');
+    box.innerHTML = '';
+    var colors = ['#f6bf3b', '#e8553d', '#2f9a5a', '#4a8fd9', '#f08fb0'];
+    for (var i = 0; i < 30; i++) {
+      var el = document.createElement('i');
+      var a = Math.random() * Math.PI * 2;
+      var d = 90 + Math.random() * 150;
+      el.style.setProperty('--x', Math.cos(a) * d + 'px');
+      el.style.setProperty('--y', (Math.sin(a) * d - 60) + 'px');
+      el.style.setProperty('--r', (Math.random() * 720 - 360) + 'deg');
+      el.style.setProperty('--c', colors[i % colors.length]);
+      el.style.animationDelay = (Math.random() * 0.12) + 's';
+      box.appendChild(el);
+    }
+  }
+
+  function showResult(recipe) {
+    var ok = !!recipe;
+    var card = $('#result-card');
+    card.className = 'result-card ' + (ok ? 'ok' : 'bad');
+    $('#result-art').innerHTML = art(ok ? recipe.art : 'fail', 'big');
+    $('#result-title').textContent = ok ? recipe.name + ' 완성!' : '실패!';
+    $('#result-sub').textContent = ok ? '맛있게 구워졌어요.' : '재료 순서가 레시피와 달라요.';
+    $('#confetti').innerHTML = '';
+    $('#result').hidden = false;
+    $('#btn-restart').focus();
+    if (ok) confetti();
+  }
+
+  $('#ing-grid').addEventListener('click', function (e) {
+    var b = e.target.closest('.ing');
+    if (b) pick(b);
+  });
+  $('#btn-play').addEventListener('click', function () { show('game'); });
+  $('#btn-recipe').addEventListener('click', function () { show('recipe'); });
+  $('#recipe-home').addEventListener('click', function () { show('menu'); });
+  $('#recipe-play').addEventListener('click', function () { show('game'); });
+  $('#game-home').addEventListener('click', function () { show('menu'); });
+  $('#btn-restart').addEventListener('click', startGame);
+  $('#btn-home').addEventListener('click', function () { show('menu'); });
+})();
+</script>
+</body>
+</html>
